@@ -1,39 +1,64 @@
-# GraphQL Security
+# 🛡️ GraphQL Security
 
-> Personal research notes on GraphQL vulnerabilities, attack patterns, and lessons learned from public bug bounty reports.
-
----
-
-## Overview
-
-GraphQL security research covering:
-- Authorization issues
-- Data exposure
-- Query manipulation
-- Mutation abuse
-- Authentication flaws
-- GraphQL-specific attack techniques
+> A collection of GraphQL vulnerability research notes, attack patterns, and lessons learned from public bug bounty reports.
 
 ---
 
-# Vulnerability Notes
+## 📚 Topics Covered
 
-## 1. <Vulnerability Title>
-
-**Source:** HackerOne report / Public disclosure
-
-- **Bug:** 
-- **Cause:** 
-- **Exploit:** 
-- **Hunt:** 
+| Category | Description |
+|---|---|
+| 🔐 Authorization | IDOR, BOLA, privilege escalation |
+| 🔑 Authentication | Session and access control issues |
+| 📂 Data Exposure | Sensitive information leaks |
+| 🔎 Query Abuse | Query manipulation and unexpected behavior |
+| ⚙️ Mutation Abuse | Unauthorized state changes |
+| 🧬 GraphQL Internals | Introspection, schemas, resolvers |
 
 ---
 
-## 2. <Vulnerability Title>
+# 📝 Vulnerability Notes
 
-**Source:** HackerOne report / Public disclosure
+---
 
-- **Bug:** 
-- **Cause:** 
-- **Exploit:** 
-- **Hunt:** 
+<details>
+<summary><b>🔴 GraphQL Connection Field Bypass Leading to Information Disclosure</b></summary>
+
+<br>
+
+**Source:** [HackerOne Report #489146](https://hackerone.com/reports/489146)
+
+---
+
+## 🐞 Vulnerability
+
+GraphQL exposed sensitive user and program metadata through the `nodes` field of connection objects.
+
+The `nodes` resolver bypassed existing authorization filtering that was applied to the normal `edges { node }` query path.
+
+## 🔍 Root Cause
+
+A GraphQL library migration introduced the `nodes` field automatically on connections.
+
+The new resolver returned objects through a different execution path where attribute-level authorization was not applied.
+
+## ⚔️ Exploitation
+
+1. Identify GraphQL connection objects.
+2. Compare `edges { node }` with direct `nodes` access.
+3. Query sensitive fields through `nodes`.
+4. Retrieve data that should have been filtered.
+
+## 🎯 Hunting Strategy
+
+Look for:
+
+- GraphQL connection objects (`users`, `teams`, `reports`, etc.)
+- Alternative ways to access objects:
+  - `nodes`
+  - `edges { node }`
+- Auto-generated GraphQL fields
+- Schema changes after migrations
+- Sensitive fields exposed without field-level authorization
+
+</details>
