@@ -81,7 +81,7 @@ Look for:
 ---
 
 <details>
-<summary><b>🟠 GraphQL Missing Field-Level Authorization Leaking User Email</b></summary>
+<summary><b>🟠 GraphQL Field-Level Authorization Bypass</b></summary>
 
 <br>
 
@@ -91,43 +91,45 @@ Look for:
 
 ## 🐞 Vulnerability
 
-The `addReportParticipant` mutation exposed the invited user's email address when inviting by username.
+GraphQL allowed users to access internal fields that were not intended to be visible to them.
 
-Although creating the invitation was allowed, the response returned a sensitive field (`email`) that should have remained private.
+The operation itself was authorized, but sensitive fields inside the returned object were missing proper access control.
 
 ## 🔍 Root Cause
 
-The invitation feature was migrated from REST to GraphQL.
+The application checked permission for accessing the object/action but failed to restrict specific sensitive fields.
 
-The REST implementation enforced an Access Control List (ACL) that hid users' email addresses, but the same field-level authorization was not implemented in the new GraphQL resolver.
+Commonly affected fields:
+
+- Emails
+- Phone numbers
+- Internal metadata
+- Tokens
+- Private information
 
 ## ⚔️ Exploitation
 
-1. Find a mutation that returns sensitive objects.
-2. Execute the mutation with a valid username.
-3. Request sensitive fields in the response (e.g. `email`).
-4. Receive data that should have been filtered.
+Request additional fields in GraphQL queries or mutations and check if restricted data is returned.
 
 Example:
 
 ```graphql
-mutation {
-  addReportParticipant(...) {
-    invitation {
-      email
-    }
+query {
+  object {
+    public_field
+    internal_field
   }
-}
-```
+}```
 
 ## 🎯 Hunting Strategy
 
 Look for:
 
-- Mutations returning newly created or modified objects
-- Sensitive response fields (`email`, `phone`, `token`, `role`, etc.)
-- Features recently migrated from REST to GraphQL
-- Missing field-level authorization on GraphQL responses
+- Objects containing sensitive fields
+- Mutations returning full objects
+- Fields that reveal internal/private data
+- Differences between user roles and accessible fields
+
 
 </details>
 
