@@ -32,9 +32,24 @@
 
 ## 🐞 Vulnerability
 
-GraphQL exposed sensitive user and program metadata through the `nodes` field of connection objects.
+Sensitive user and program metadata was exposed through the GraphQL `nodes` field.
 
-The `nodes` resolver bypassed existing authorization filtering that was applied to the normal `edges { node }` query path.
+The same objects were protected when accessed through:
+
+```graphql
+edges {
+  node {
+    ...
+  }
+}
+```
+but exposed when accessed through:
+```
+nodes {
+  ...
+}
+```
+one path is filtered(protected) and one is not.
 
 ## 🔍 Root Cause
 
