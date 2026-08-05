@@ -119,7 +119,8 @@ query {
     public_field
     internal_field
   }
-}```
+}
+```
 
 ## 🎯 Hunting Strategy
 
