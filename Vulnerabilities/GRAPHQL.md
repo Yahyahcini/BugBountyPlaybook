@@ -136,3 +136,64 @@ Look for:
 
 ---
 
+<details>
+<summary><b>🔴 GraphQL IDOR Through Missing Object Authorization</b></summary>
+
+<br>
+
+**Source:** [HackerOne Report #2122671](https://hackerone.com/reports/2122671)
+
+---
+
+## 🐞 Vulnerability
+
+GraphQL mutations allowed users to modify or delete other users' objects by changing object identifiers.
+
+The application checked that the request was valid but did not verify that the object belonged to the current user.
+
+## 🔍 Root Cause
+
+Missing object-level authorization (BOLA/IDOR).
+
+The server trusted user-controlled IDs without checking ownership.
+
+Example:
+Original:
+certification_id = 123
+
+Changed:
+certification_id = another_user_object_id (like : = 124)
+
+
+The server processed the action on another user's object.
+
+## ⚔️ Exploitation
+
+1. Perform an action on your own object.
+2. Capture the GraphQL request.
+3. Find object identifiers.
+4. Replace the ID with another object's ID.
+5. Check if you can modify or delete data.
+
+## 🎯 Hunting Strategy
+
+Look for:
+
+- GraphQL mutations containing IDs:
+  - `id`
+  - `userId`
+  - `objectId`
+  - `nodeId`
+- Actions:
+  - update
+  - delete
+  - archive
+  - restore
+- User-owned objects:
+  - profiles
+  - documents
+  - certifications
+  - settings
+  - reports
+
+</details>
