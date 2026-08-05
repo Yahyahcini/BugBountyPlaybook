@@ -77,3 +77,59 @@ Look for:
 - Sensitive fields exposed without field-level authorization
 
 </details>
+
+---
+
+<details>
+<summary><b>🟠 GraphQL Missing Field-Level Authorization Leaking User Email</b></summary>
+
+<br>
+
+**Source:** [HackerOne Report #792927](https://hackerone.com/reports/792927)
+
+---
+
+## 🐞 Vulnerability
+
+The `addReportParticipant` mutation exposed the invited user's email address when inviting by username.
+
+Although creating the invitation was allowed, the response returned a sensitive field (`email`) that should have remained private.
+
+## 🔍 Root Cause
+
+The invitation feature was migrated from REST to GraphQL.
+
+The REST implementation enforced an Access Control List (ACL) that hid users' email addresses, but the same field-level authorization was not implemented in the new GraphQL resolver.
+
+## ⚔️ Exploitation
+
+1. Find a mutation that returns sensitive objects.
+2. Execute the mutation with a valid username.
+3. Request sensitive fields in the response (e.g. `email`).
+4. Receive data that should have been filtered.
+
+Example:
+
+```graphql
+mutation {
+  addReportParticipant(...) {
+    invitation {
+      email
+    }
+  }
+}
+```
+
+## 🎯 Hunting Strategy
+
+Look for:
+
+- Mutations returning newly created or modified objects
+- Sensitive response fields (`email`, `phone`, `token`, `role`, etc.)
+- Features recently migrated from REST to GraphQL
+- Missing field-level authorization on GraphQL responses
+
+</details>
+
+---
+
