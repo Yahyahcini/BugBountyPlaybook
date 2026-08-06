@@ -47,3 +47,6 @@ Future sections will include:
 This repository is for educational and security research purposes.
 
 All notes are based on publicly available security research and are rewritten in my own words.
+
+
+> *If these writeups helped you learn something new, consider giving this repo a ⭐ to help others find it!*
