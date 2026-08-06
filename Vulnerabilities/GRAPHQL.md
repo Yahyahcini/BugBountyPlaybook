@@ -206,7 +206,7 @@ Look for:
 
 <br>
 
-**Source:** https://hackerone.com/reports/1864188
+**Source:** [HackerOne Report #1864188](https://hackerone.com/reports/1864188)
 
 ---
 
