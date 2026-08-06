@@ -197,3 +197,92 @@ Look for:
   - reports
 
 </details>
+
+---
+
+
+<details>
+<summary><b>🟡 GraphQL SSRF Through User-Controlled URL Parameter</b></summary>
+
+<br>
+
+**Source:** https://hackerone.com/reports/1864188
+
+---
+
+## 🐞 Vulnerability
+
+A GraphQL query accepted a user-controlled URL parameter (`source`) and used it to perform server-side HTTP requests.
+
+An attacker could provide an arbitrary URL, causing the application server to send requests to external or internal destinations, resulting in Server-Side Request Forgery (SSRF).
+
+---
+
+## 🔍 Root Cause
+
+The backend trusted a user-controlled GraphQL parameter as the destination of an HTTP request.
+
+The application expected a trusted source value but failed to restrict or validate the input.
+
+Example:
+
+Original:
+
+```
+source = "trusted_source"
+```
+
+Changed:
+
+```
+source = "https://attacker.com"
+```
+
+The server processed the attacker-controlled URL and sent the request.
+
+---
+
+## ⚔️ Exploitation
+
+1. Identify GraphQL queries or mutations with parameters that may trigger server-side requests.
+2. Replace the value with a Burp Collaborator or Interactsh URL.
+3. Monitor for DNS or HTTP interactions.
+4. Test internal destinations such as:
+   - localhost
+   - private IP addresses
+   - internal hostnames
+
+---
+
+## 🎯 Hunting Strategy
+
+Look for GraphQL parameters that may control server-side requests:
+
+- `url`
+- `uri`
+- `source`
+- `endpoint`
+- `callback`
+- `webhook`
+- `proxy`
+- `redirect`
+- `image`
+- `import`
+
+Focus on features that:
+
+- Fetch external resources
+- Import data from URLs
+- Process remote files
+- Communicate with external services
+
+---
+
+## 🛡️ Prevention
+
+- Never allow arbitrary URLs from user input.
+- Use allowlists for trusted destinations.
+- Validate protocol, hostname, and IP ranges.
+- Prefer predefined values (enums) instead of user-controlled URLs.
+
+</details>
