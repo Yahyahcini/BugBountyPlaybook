@@ -692,3 +692,151 @@ Then ask:
 A GraphQL endpoint can suffer from classic SQL Injection even when the GraphQL query itself is completely safe. Always test the entire HTTP request, not just the GraphQL operation.
 
 </details>
+
+---
+
+<details>
+<summary><b>🟠 GraphQL Authorization Bypass Allowing Unauthorized App Token Generation</b></summary>
+
+<br>
+
+**Source:** [HackerOne Report #898528](https://hackerone.com/reports/898528)
+
+---
+
+## 🐞 Vulnerability
+
+A GraphQL mutation allowed unauthorized staff members to generate application session tokens.
+
+The vulnerable mutation was:
+
+```graphql
+adminGenerateSession
+```
+This mutation should only be accessible by staff members with the required Apps permission.
+
+However, the server only verified that the user was a valid staff member inside the shop and failed to check if the user had permission to generate app sessions.
+
+Example request:
+```graphql
+mutation GenerateSessionToken($appId: ID!) {
+  adminGenerateSession(appId: $appId) {
+    session
+  }
+}
+```
+Variables:
+```json
+{
+  "appId": "gid://shopify/App/..."
+}
+```
+Response:
+```json
+{
+  "data": {
+    "adminGenerateSession": {
+      "session": "TOKEN_VALUE"
+    }
+  }
+}
+```
+A valid session token was generated even though the user did not have the required permission.
+
+## 🔍 Root Cause
+
+Missing authorization check on a sensitive GraphQL mutation.
+
+The application checked:
+*Is the user authenticated and part of the shop?*
+But failed to check:
+*Does this user have permission to generate app sessions?*
+The authorization was applied to the user account but not to the specific action.
+
+Example:
+```
+Staff User
+    |
+    |-- Access to Admin panel ✅
+    |
+    |-- Apps permission ❌
+    |
+    |-- adminGenerateSession mutation
+             |
+             |-- Missing permission check
+             |
+             |-- Token generated ❌
+```
+The GraphQL resolver trusted the authenticated user without validating the required privilege.
+
+## ⚔️ Exploitation
+
+**1. Obtain a low-privileged staff account.**
+**2. Find sensitive GraphQL mutations.**
+**3. Capture the GraphQL request.**
+**4. Call the mutation directly.**
+**5. Check if the action succeeds without permission validation.**
+
+Example:
+```
+Staff account
++
+No Apps permission
+```
+Send:
+```graphql
+mutation {
+  adminGenerateSession(
+    appId:"gid://shopify/App/..."
+  ){
+    session
+  }
+}
+```
+If the server returns a session token, the authorization check is missing.
+
+## 🎯 Impact
+
+An attacker with a low-privileged staff account could:
+
+- Generate application session tokens.
+- Access installed applications using those tokens.
+- Perform actions available to those applications.
+
+The impact was limited to the current shop and applications using this session generation flow.
+
+## 🎯 Hunting Strategy
+Look for sensitive GraphQL mutations:
+```
+generate
+create
+delete
+update
+approve
+authorize
+token
+session
+admin
+```
+Especially:
+```
+adminGenerate*
+generateSession
+createToken
+createAPIKey
+authorizeApp
+```
+
+## Testing approach:
+
+Create accounts with different permission levels.
+
+- Compare available actions.
+- Call hidden mutations manually.
+- Remove permissions and test again.
+
+**Main question:**
+
+"Does the API verify the user's permission for this specific action, or only verify that the user is authenticated?"
+
+</details>
