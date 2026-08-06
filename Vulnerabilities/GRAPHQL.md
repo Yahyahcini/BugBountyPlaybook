@@ -572,3 +572,123 @@ Main question:
 "Can I access this field even though I cannot access this type of information normally?"
 
 </details>
+
+---
+<details>
+<summary><b>🔴 SQL Injection Through GraphQL Endpoint Parameter</b></summary>
+
+<br>
+
+**Source:** [HackerOne Report #435066](https://hackerone.com/reports/435066)
+
+---
+
+## 🐞 Vulnerability
+
+A SQL Injection vulnerability existed on the **GraphQL endpoint**, but **not inside the GraphQL query itself**.
+
+The endpoint accepted a user-controlled HTTP parameter:
+
+```http
+POST /graphql?embedded_submission_form_uuid=<value>
+```
+
+Instead of safely handling this parameter, the backend inserted it directly into an SQL statement, allowing arbitrary SQL execution.
+
+---
+
+## 🔍 Root Cause
+
+The backend trusted the HTTP parameter and concatenated it into SQL instead of using parameterized queries.
+
+Vulnerable code:
+
+```ruby
+safe_query += "SET SESSION #{key} TO #{value};"
+```
+
+Because `value` came directly from user input, an attacker could inject SQL commands.
+
+Example:
+
+Normal value:
+
+```
+123
+```
+
+Generated SQL:
+
+```sql
+SET SESSION embedded_submission_form_uuid TO '123';
+```
+
+Injected value:
+
+```
+1'; SELECT pg_sleep(5);--
+```
+
+Generated SQL:
+
+```sql
+SET SESSION embedded_submission_form_uuid TO '1';
+SELECT pg_sleep(5);
+--';
+```
+
+---
+
+## ⚔️ Exploitation
+
+1. Find user-controlled parameters accepted by the GraphQL endpoint.
+2. Inject SQL payloads.
+3. Confirm execution using a time-based payload.
+
+Example:
+
+```http
+POST /graphql?embedded_submission_form_uuid=1';SELECT pg_sleep(5);--
+```
+
+If the response is delayed by approximately 5 seconds, the SQL query executed successfully.
+
+---
+
+## 🎯 Impact
+
+An attacker could execute arbitrary SQL statements on the database.
+
+Possible impacts include:
+
+- Reading sensitive database information
+- Extracting data
+- Enumerating the database
+- Bypassing intended security boundaries
+
+In this report, the injection executed against HackerOne's secure schema, reducing the impact, but SQL execution was still achieved.
+
+---
+
+## 🎯 Hunting Strategy
+
+When testing GraphQL, don't focus only on GraphQL queries.
+
+Inspect every user-controlled input associated with the endpoint:
+
+- URL parameters
+- POST parameters
+- Headers
+- Cookies
+
+Then ask:
+
+- Does this value reach SQL?
+- Is it concatenated into a query?
+- Can special characters (`'`, `"`, `;`, `--`) change the SQL statement?
+
+**Key takeaway:**
+
+A GraphQL endpoint can suffer from classic SQL Injection even when the GraphQL query itself is completely safe. Always test the entire HTTP request, not just the GraphQL operation.
+
+</details>
