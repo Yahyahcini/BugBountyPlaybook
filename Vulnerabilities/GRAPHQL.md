@@ -304,3 +304,124 @@ Focus on features that:
 - Prefer predefined values (enums) instead of user-controlled URLs.
 
 </details>
+
+---
+
+<details>
+<summary><b>🟡 GraphQL IDOR Through Missing Invoice Authorization</b></summary>
+
+<br>
+
+**Source:** [HackerOne Report #2207248](https://hackerone.com/reports/2207248)
+
+---
+
+## 🐞 Vulnerability
+
+GraphQL operations `BillDetails` and `BillingDocumentDownload` allowed users to access other shops' invoices by changing the `BillingInvoice` ID.
+
+The application verified that the invoice existed but failed to verify that the invoice belonged to the current user/shop.
+
+---
+
+## 🔍 Root Cause
+
+Missing object-level authorization (IDOR / BOLA).
+
+The GraphQL resolver trusted a user-controlled object ID:
+
+```graphql
+node(id:$id)
+```
+
+without checking ownership.
+
+Example:
+
+Normal request:
+
+```
+invoice_id = 123
+```
+
+Attacker changes:
+
+```
+invoice_id = 124
+```
+
+The server returns another shop's invoice because ownership validation is missing.
+
+---
+
+## ⚔️ Exploitation
+
+1. Access your own invoice.
+2. Capture the GraphQL request.
+3. Identify object identifiers:
+   - id
+   - invoiceId
+   - node(id:)
+4. Replace your invoice ID with another valid ID.
+5. Check if another user's data is returned.
+
+Affected operations:
+
+```graphql
+BillDetails
+BillingDocumentDownload
+```
+
+---
+
+## 🎯 Impact
+
+Exposed sensitive billing information:
+
+- Email addresses
+- Full addresses
+- Invoice details
+- Payment information
+  - Last 4 card digits
+  - Card type
+  - PayPal email
+
+---
+
+## 🎯 Hunting Strategy
+
+Look for GraphQL objects containing IDs:
+
+```graphql
+node(id:)
+```
+
+```graphql
+object(id:)
+```
+
+```graphql
+mutation(input:{id})
+```
+
+Test:
+
+- Incrementing IDs
+- UUIDs
+- Global IDs
+- Base64 encoded IDs
+
+Focus on sensitive objects:
+
+- invoices
+- payments
+- documents
+- reports
+- accounts
+- subscriptions
+
+Always test:
+
+"Can I access another user's object by changing only the identifier?"
+
+</details>
