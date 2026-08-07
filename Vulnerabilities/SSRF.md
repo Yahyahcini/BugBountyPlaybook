@@ -1041,9 +1041,11 @@ Main question:
 ---
 
 <details>
-<summary><b>🟠 SSRF via DNS Rebinding — Webhook URL Validation Bypass</b></summary>
+<summary><b>⚫ [CRITICAL TECHNIQUE] SSRF via DNS Rebinding — Bypassing Mitigations at the Protocol Level (GitLab)</b></summary>
 
 <br>
+
+> 💎 **This is the strongest pattern in this collection.** It doesn't exploit a missing filter — it exploits the *timing gap* between when a filter checks and when the request actually fires. Most SSRF protections in the wild are vulnerable to this exact race.
 
 **Source:** [HackerOne Report #632101](https://hackerone.com/reports/632101)
 
@@ -1159,3 +1161,5 @@ Main question:
 "Even if this app blocks internal IPs today — can I make the answer change *after* it checks, but *before* it connects?"
 
 </details>
+
+---
