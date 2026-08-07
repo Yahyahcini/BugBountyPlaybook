@@ -419,7 +419,7 @@ Main question:
 ---
 
 <details>
-  <summary><b> SSRF through Project Import using Remote Attachment URL</b></summary>
+  <summary><b>🟠 SSRF through Project Import using Remote Attachment URL</b></summary>
 **Source:** [HackerOne Report #826361](https://hackerone.com/reports/826361)
 
 ---
