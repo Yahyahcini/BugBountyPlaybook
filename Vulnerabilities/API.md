@@ -22,6 +22,8 @@
 | 🔐 Impact Analysis | Data exposure, account takeover, privilege escalation |
 
 ---
+# 📝 Vulnerability Notes
+---
 <details>
 <summary><b>🔴 Email Addresses Exposed in `getPersonBySlug` API</b></summary>
 
