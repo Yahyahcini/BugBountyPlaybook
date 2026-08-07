@@ -855,3 +855,140 @@ Main question:
 "Can I make the server send a request somewhere that I cannot access directly?"
 
 </details>
+---
+<details>
+<summary><b>🟠 Blind SSRF to Internal Services in Matrix `preview_url` API</b></summary>
+
+<br>
+
+**Source:** [HackerOne Report #1960765](https://hackerone.com/reports/1960765)
+
+---
+
+## 🐞 Vulnerability
+
+Reddit's chat feature is built on Matrix, which includes a link-preview endpoint used to generate rich previews for shared URLs.
+
+The endpoint:
+
+```
+https://matrix.redditspace.com/_matrix/media/r0/preview_url/?url=*
+```
+
+did not filter or restrict the `url` parameter before the server used it to fetch content.
+
+Because this request was made server-side, an attacker could point `url` at internal services instead of public websites.
+
+Example:
+
+```
+https://matrix.redditspace.com/_matrix/media/r0/preview_url/?url=http://internal-host/
+```
+
+The response returned metadata (such as `og:title`) scraped from whatever the server fetched — meaning the SSRF was "partially blind": no raw response body was returned, but enough was leaked to fingerprint internal services.
+
+---
+
+## 🔍 Root Cause
+
+The application trusted the `url` parameter completely and allowed the backend to fetch it, without distinguishing between public destinations and internal/private network ranges.
+
+Normal flow:
+
+```
+User shares a link
+      |
+      v
+preview_url endpoint
+      |
+      v
+Server fetches URL
+      |
+      v
+Public website metadata returned
+```
+
+Attack flow:
+
+```
+Attacker-supplied internal URL
+      |
+      v
+preview_url endpoint
+      |
+      v
+Server fetches internal service
+      |
+      v
+og:title / metadata leaked
+```
+
+The endpoint had no allow-list or internal-IP filtering in place.
+
+---
+
+## ⚔️ Exploitation
+
+1. Find a link-preview / unfurl feature that fetches user-supplied URLs server-side.
+
+2. Replace the URL with internal hosts or IPs:
+
+```
+https://matrix.redditspace.com/_matrix/media/r0/preview_url/?url=http://internal-host/
+```
+
+3. Read back the `og:title` or other metadata extracted from the response — this confirms the request reached an internal service, even without seeing the full response body.
+
+4. Repeat against different internal hosts to enumerate reachable services (light, non-destructive scanning — confirmed with the program before proceeding further).
+
+5. If a slow/hanging request is returned, reload and retry rather than assuming failure — internal services may respond inconsistently.
+
+6. Look for follow-on impact: since only GET requests were possible, escalation was limited to services that perform state changes on GET (a common but risky anti-pattern) — this required explicit permission from the program before testing.
+
+---
+
+## 🎯 Impact
+
+Possible impacts:
+
+- Internal service enumeration via leaked metadata (titles, service names)
+- Effective port scanning of internal infrastructure
+- Fingerprinting of internal panels/services otherwise unreachable externally
+- Potential escalation to RCE *if* any reachable internal service performed unsafe actions on GET requests (scoped and explicitly authorized in this case)
+
+Because responses weren't fully blind — some data (like `og:title`) was reflected back — the impact was rated higher than a purely blind SSRF, and the report was rewarded as **High** with a $5,000 bounty plus a $1,000 bonus.
+
+---
+
+## 🎯 Hunting Strategy
+
+Look for features that unfurl or preview links server-side:
+
+- Chat/messaging link previews
+- URL unfurling APIs
+- Social/embed card generators
+- Any endpoint with a `url=` or `link=` parameter that returns scraped metadata
+
+Common parameters:
+
+```
+url
+link
+preview_url
+source
+```
+
+Test destinations:
+
+```
+internal hostnames
+internal IP ranges
+localhost
+127.0.0.1
+```
+
+Main question:
+
+"Can I make the server fetch something internal — and does any part of the response leak back to me?"
+
+</details>
