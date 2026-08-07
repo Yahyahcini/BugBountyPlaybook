@@ -415,3 +415,281 @@ Main question:
 "Can I make the server send a request somewhere that I cannot access directly?"
 
 </details>
+
+---
+
+<details>
+  <summary><b> SSRF through Project Import using Remote Attachment URL</b></summary>
+**Source:** [HackerOne Report #826361](https://hackerone.com/reports/826361)
+
+---
+
+## 🐞 Vulnerability
+
+A Server-Side Request Forgery (SSRF) vulnerability existed in GitLab's project import functionality.
+
+GitLab allowed users to import projects using an exported project archive.
+
+During the import process, GitLab processed attachment fields using the CarrierWave uploader.
+
+One of these fields:
+
+```
+remote_attachment_url
+```
+
+allowed an attacker to provide a URL.
+
+When the project was imported, GitLab's backend server automatically downloaded the file from the provided URL.
+
+Because this request was performed server-side, an attacker could force GitLab to send requests to internal services.
+
+Normal flow:
+
+```
+User imports project
+  |
+  v
+GitLab Import Handler
+  |
+  v
+Download attachment from external URL
+```
+
+Attack flow:
+
+```
+Attacker-controlled URL
+  |
+  v
+GitLab Server
+  |
+  v
+Internal Services
+```
+
+This resulted in an SSRF vulnerability.
+
+---
+
+## 🔍 Root Cause
+
+The root cause was that GitLab trusted user-controlled URLs during project imports.
+
+The import process failed to remove dangerous attributes before creating objects.
+
+The vulnerable flow:
+
+```
+Project Export File
+  |
+  v
+remote_attachment_url
+  |
+  v
+CarrierWave Downloader
+  |
+  v
+Server-side HTTP Request
+```
+
+The application expected:
+
+```
+attachment = uploaded file
+```
+
+but accepted:
+
+```
+attachment = URL controlled by attacker
+```
+
+The backend downloaded the URL directly without restricting the destination.
+
+This allowed requests to:
+
+- Internal IP addresses
+- Local services
+- Cloud metadata endpoints
+
+---
+
+## ⚔️ Exploitation
+
+1. Create a GitLab project.
+
+2. Create an issue and add a note.
+
+3. Export the project.
+
+4. Extract the project archive.
+
+5. Modify the exported data and add:
+
+```
+remote_attachment_url=https://attacker-server.com/file
+```
+
+6. Recompress the archive.
+
+7. Import the modified project.
+
+8. GitLab server requests the attacker-controlled URL.
+
+After confirming SSRF, test internal resources:
+
+```
+http://127.0.0.1
+http://localhost
+http://169.254.169.254
+```
+
+Example cloud metadata targets:
+
+AWS:
+```
+http://169.254.169.254/latest/meta-data/
+```
+
+Google Cloud:
+```
+http://metadata.google.internal/
+```
+
+Azure:
+```
+http://169.254.169.254/metadata/
+```
+
+---
+
+## 🔗 Attack Chain
+
+The SSRF vulnerability could be chained with internal services.
+
+```
+SSRF
+  |
+  v
+Internal Network Access
+  |
+  v
+Cloud Metadata Service
+  |
+  v
+Temporary Credentials
+  |
+  v
+Cloud Resource Access
+```
+
+Other possible chains:
+
+```
+SSRF
+  |
+  v
+Internal Admin Panels
+  |
+  v
+Sensitive Data Exposure
+```
+
+or:
+
+```
+SSRF
+  |
+  v
+Internal Redis / Services
+  |
+  v
+Possible Remote Code Execution
+```
+
+---
+
+## 🎯 Impact
+
+The vulnerability allowed attackers to:
+
+- Access internal services from GitLab servers
+- Bypass external network restrictions
+- Read cloud metadata
+- Retrieve cloud credentials
+- Discover internal infrastructure
+- Access monitoring services
+- Potentially chain SSRF into further compromise
+
+In cloud environments, SSRF could expose:
+
+- AWS credentials
+- Service account tokens
+- Internal API endpoints
+- Private infrastructure information
+
+---
+
+## 🎯 Hunting Strategy
+
+Look for features where the server downloads or processes external resources:
+
+- Project imports
+- File imports
+- Image uploads from URL
+- Avatar fetching
+- Document processing
+- URL previews
+- Webhooks
+- Screenshot generation
+- PDF generation
+- External integrations
+
+Common parameters:
+
+```
+url
+uri
+remote_url
+file_url
+image_url
+attachment_url
+source
+import_url
+callback
+webhook
+fetch
+proxy
+```
+
+Test with:
+
+```
+https://your-collaborator-domain.com
+```
+
+Confirm:
+
+```
+DNS interaction
+HTTP request
+```
+
+Then test internal destinations:
+
+```
+localhost
+127.0.0.1
+Internal hostnames
+Private IP ranges
+169.254.169.254
+```
+
+Main question:
+
+"Can I make the server download something on my behalf?"
+
+---
+Import feature + user-controlled URL + backend download = SSRF.
+</details>
