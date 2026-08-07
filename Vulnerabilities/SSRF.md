@@ -695,6 +695,7 @@ Import feature + user-controlled URL + backend download = SSRF.
 </details>
 
 ---
+
 <details>
 <summary><b>🟡 SSRF in GraphQL `source` Parameter</b></summary>
 
@@ -855,7 +856,9 @@ Main question:
 "Can I make the server send a request somewhere that I cannot access directly?"
 
 </details>
+
 ---
+
 <details>
 <summary><b>🟠 Blind SSRF to Internal Services in Matrix `preview_url` API</b></summary>
 
