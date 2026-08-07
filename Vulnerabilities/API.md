@@ -170,3 +170,132 @@ Main question:
 Excessive response data + missing authorization = information disclosure.
 
 </details>
+
+---
+
+<details>
+<summary><b>🟠 Open Redirect via Firebase Dynamic Links API Key Exposure</b></summary>
+
+<br>
+
+**Source:** [HackerOne Report #1066410](https://hackerone.com/reports/1066410)
+
+---
+
+## 🐞 Vulnerability
+
+Clario's frontend JavaScript exposed a Google Firebase Dynamic Links API key.
+
+The exposed key allowed interaction with the URL-shortening service used by:
+
+```
+https://lnk.clario.co/
+```
+
+Due to improper URL validation on the redirect target, an attacker could generate a Clario-branded shortened link that redirected to any external website.
+
+Attack flow:
+
+```
+Attacker-controlled URL
+      |
+      v
+Clario Dynamic Link API
+      |
+      v
+Malicious website
+```
+
+Because the link lived on a trusted `clario.co` domain, victims were far more likely to trust and click it.
+
+---
+
+## 🔍 Root Cause
+
+The API accepted any destination URL for the dynamic link without checking it against an allow-list.
+
+The application expected:
+
+```
+link=https://clario.co/page
+```
+
+but accepted:
+
+```
+link=https://attacker.com
+```
+
+Leaking the API key was what made this exploitable externally — anyone with the key could call the link-generation API directly, bypassing any client-side restrictions in the app's own UI.
+
+---
+
+## ⚔️ Exploitation
+
+1. Search frontend JS for exposed keys:
+
+```
+AIza
+firebase
+googleapis
+apiKey
+```
+
+2. Confirm the key works against the Dynamic Links API.
+
+3. Generate a link pointing at an attacker-controlled domain:
+
+```
+https://attacker.com
+```
+
+4. Send the resulting `lnk.clario.co` link to a victim — it looks trusted, but redirects off-domain.
+
+---
+
+## 🎯 Impact
+
+- Phishing using a trusted brand domain
+- Credential theft
+- Malware distribution
+- Brand reputation abuse
+
+---
+
+## 🎯 Hunting Strategy
+
+Look for exposed secrets in JS bundles:
+
+```
+apiKey
+token
+firebase
+googleapis
+AIza
+```
+
+And redirect-capable parameters:
+
+```
+url
+redirect
+next
+return
+callback
+target
+link
+```
+
+Test with an external domain and see if the redirect goes through unvalidated:
+
+```
+https://attacker.com
+```
+
+Main question:
+
+"Can I make a trusted domain redirect users to a site I control?"
+
+Trusted redirect + weak URL validation (+ leaked API key) = Open Redirect.
+
+</details>
