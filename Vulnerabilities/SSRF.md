@@ -21,6 +21,46 @@
 | 🔐 Impact Analysis | Internal access, data exposure, and privilege escalation |
 
 ---
+<details>
+  <summary>quick info !!</summary>
+  # 🔎 SSRF Verification
+
+To confirm SSRF, make the server request a URL you control.
+
+Example:
+
+```
+Input:
+url=https://your-id.interactsh.com
+```
+
+If you receive:
+
+```
+DNS interaction
+HTTP request
+```
+
+then:
+
+```
+Target Server ---> Your Server
+```
+
+is confirmed.
+
+After confirming SSRF, test internal targets:
+
+```
+127.0.0.1
+localhost
+169.254.169.254 (cloud metadata)
+```
+
+Main idea:
+
+"Can I make the server send a request for me?"
+</details>
 
 # 📝 Vulnerability Notes
 
