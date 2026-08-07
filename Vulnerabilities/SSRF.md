@@ -1037,3 +1037,125 @@ Main question:
 "Can I make the server fetch something internal — and does any part of the response leak back to me?"
 
 </details>
+
+---
+
+<details>
+<summary><b>🟠 SSRF via DNS Rebinding — Webhook URL Validation Bypass</b></summary>
+
+<br>
+
+**Source:** [HackerOne Report #632101](https://hackerone.com/reports/632101)
+
+---
+
+## 🐞 Vulnerability
+
+GitLab's webhook feature validated URLs before sending requests, to block SSRF against the internal network.
+
+The validation function performed a DNS lookup, checked if the resolved IP belonged to the local network, and rejected it if so — then reused that resolved IP for the actual request to prevent the domain resolving to something different later (DNS rebinding protection).
+
+The flaw: if the DNS lookup **failed to resolve** during validation (e.g. domain didn't resolve yet), the rebinding protection was skipped entirely — and the request proceeded anyway once the domain *did* resolve, by then to an internal IP.
+
+```
+lib/gitlab/url_blocker.rb (validate function)
+```
+
+---
+
+## 🔍 Root Cause
+
+The validator only enforced its internal-IP check on the *success* path of DNS resolution. An error/no-resolution path had no equivalent safeguard.
+
+Normal flow:
+
+```
+Webhook URL
+      |
+      v
+DNS Lookup
+      |
+      v
+IP is internal? ---> reject
+      |
+      v
+IP is external ---> allow + pin IP
+```
+
+Attack flow (DNS rebinding):
+
+```
+Webhook URL (first lookup fails / times out)
+      |
+      v
+Validation skipped (no IP to check)
+      |
+      v
+Webhook fires later
+      |
+      v
+Domain now resolves to 169.254.169.254 / 127.0.0.1
+      |
+      v
+Request sent to internal target
+```
+
+By controlling a DNS server that first returns no/failing records, then later returns an internal IP via a chain of CNAMEs (to defeat caching), the check could be bypassed entirely.
+
+---
+
+## ⚔️ Exploitation
+
+1. Set up a domain (`hacker1.xyz`) on an attacker-controlled DNS server that can return different records per query, using CNAME chaining to avoid DNS caching.
+
+2. Create a webhook on a GitLab repository pointing to that domain:
+
+```
+http://990.hacker1.xyz
+```
+
+3. Trigger the webhook once — the initial DNS lookup fails/errors, so GitLab's validator skips the internal-IP check.
+
+4. Wait ~10 seconds, then fire the webhook test ("Test" → "Push events").
+
+5. By this point the domain resolves to an internal target:
+
+```
+http://169.254.169.254
+http://127.0.0.1
+```
+
+6. The webhook response returns the content fetched from the internal target.
+
+7. Space out retries by ~15 seconds to avoid DNS caching interfering with the rebind.
+
+---
+
+## 🎯 Impact
+
+- Bypassed SSRF/DNS-rebinding protections entirely via a race between validation and execution
+- Confirmed access to `169.254.169.254` (cloud metadata range) and `127.0.0.1`
+- Chained impact referenced a prior public GitLab SSRF report (#341876, $25,000 bounty) where the same metadata-endpoint access path led to Google Cloud RCE — though GitLab's own triage noted the metadata endpoint wasn't reachable on gitlab.com's specific setup, lowering severity from Critical to High
+
+---
+
+## 🛠️ Fix
+
+Patched in GitLab 12.1.2 — the validator was updated to enforce the internal-IP check regardless of whether the initial DNS lookup succeeded or failed, closing the race window.
+
+---
+
+## 🎯 Hunting Strategy
+
+When an app claims to block SSRF via IP/domain validation, don't just test the happy path — test the **failure and timing paths**:
+
+- What happens if the domain doesn't resolve on first check?
+- Is the validated IP the same IP actually used for the request, or could it change between check and use (TOCTOU)?
+- Can you control a DNS server to return different answers on sequential queries (rebinding)?
+- Use short TTLs / CNAME chains to defeat resolver caching during the attack window.
+
+Main question:
+
+"Even if this app blocks internal IPs today — can I make the answer change *after* it checks, but *before* it connects?"
+
+</details>
