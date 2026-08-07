@@ -23,10 +23,8 @@ The goal is to extract:
 | Category | Description |
 |---|---|
 | 🔗 [GraphQL Security](./Vulnerabilities/GRAPHQL.md) | GraphQL vulnerabilities, attack patterns, and research notes |
-| 🔐 [IDOR / BOLA](./Vulnerabilities/IDOR.md) | Object-level authorization issues |
-| 📝 [XSS](./Vulnerabilities/XSS.md) | Cross-site scripting techniques and bypasses |
-| 💉 [SQL Injection](./Vulnerabilities/SQLi.md) | Database injection vulnerabilities |
 | 🌐 [SSRF](./Vulnerabilities/SSRF.md) | Server-side request forgery techniques |
+| 💉 [API Security](./Vulnerabilities/API.md) | API vulnrabilities |
 
 ---
 
