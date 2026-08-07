@@ -299,6 +299,7 @@ Main question:
 Trusted redirect + weak URL validation (+ leaked API key) = Open Redirect.
 
 </details>
+
 ---
 
 <details>
