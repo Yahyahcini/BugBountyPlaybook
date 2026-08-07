@@ -22,6 +22,48 @@
 
 ---
 <details>
+  <summary><b>where to look for SSRF </b></summary>
+  # 🔍 Where to Find SSRF
+
+Any feature where the server fetches something on your behalf.
+
+## 🌐 URL Fetching / Previews
+```
+url, uri, source, link, endpoint, callback, target
+```
+Link previews, screenshot tools, redirect checkers.
+
+## 🪝 Webhooks
+```
+webhook_url, callback_url, notify_url
+```
+Whole feature = server making outbound requests. High-value.
+
+## 📥 File / Resource Import
+```
+file_url, image_url, import_url, remote_url, attachment_url
+```
+Avatar fetch, project import, "load from URL."
+
+## 📄 Document/Media Rendering
+PDF generation, screenshots, email previews. No `url=` needed — inject `<iframe>`/`<img>` into rendered HTML.
+
+## 🔗 Integrations
+```
+host, server, api_url, base_url, proxy
+```
+"Test connection" buttons, custom endpoint configs.
+
+## 🧩 Easy to Miss
+- SVG/XML uploads → XXE-driven SSRF
+- OAuth: `redirect_uri`, `metadata_url`
+- Markdown/embed rendering
+- Hostname (not IP) params → DNS rebinding
+
+## Ask
+"Can I make the server request a URL I control?" → Confirm with Collaborator/Interactsh → push to internal IPs + cloud metadata.
+</details>
+<details>
   <summary>quick info !!</summary>
   # 🔎 SSRF Verification
 
