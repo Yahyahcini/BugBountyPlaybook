@@ -25,7 +25,7 @@ The goal is to extract:
 | 🔗 [GraphQL Security](./Vulnerabilities/GRAPHQL.md) | GraphQL vulnerabilities, attack patterns, and research notes |
 | 🌐 [SSRF](./Vulnerabilities/SSRF.md) | Server-side request forgery techniques |
 | 🔗 [API Security](./Vulnerabilities/API.md) | API vulnrabilities |
-| 💻 [BUSINESS LOGIC](./Vulnerabilities/BUSINESSLOGIC.md) | BUSINESS LOGIC vulnrabilities |
+| 💻 [BUSINESS LOGIC](./Vulnerabilities/BUSINESSLOGIC.md) | BUSINESS LOGIC techniques |
 
 ---
 
