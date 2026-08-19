@@ -26,7 +26,7 @@ The goal is to extract:
 | 🌐 [SSRF](./Vulnerabilities/SSRF.md) | Server-side request forgery techniques |
 | 🔗 [API Security](./Vulnerabilities/API.md) | API vulnrabilities |
 | 💻 [BUSINESS LOGIC](./Vulnerabilities/BUSINESSLOGIC.md) | BUSINESS LOGIC techniques |
-| ⌚ In Progress  | ...|
+| ⌚ In Progress  | coming soon ...|
 
 ---
 
