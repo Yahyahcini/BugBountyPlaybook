@@ -26,6 +26,7 @@ The goal is to extract:
 | 🌐 [SSRF](./Vulnerabilities/SSRF.md) | Server-side request forgery techniques |
 | 🔗 [API Security](./Vulnerabilities/API.md) | API vulnrabilities |
 | 💻 [BUSINESS LOGIC](./Vulnerabilities/BUSINESSLOGIC.md) | BUSINESS LOGIC techniques |
+| ⌚ In Progress  | ...|
 
 ---
 
@@ -46,6 +47,10 @@ Future sections will include:
 This repository is for educational and security research purposes.
 
 All notes are based on publicly available security research and are rewritten in my own words.
+
+
+
+
 
 
 > *If these writeups helped you learn something new, consider giving this repo a ⭐ to help others find it!*
